@@ -1,0 +1,70 @@
+I have a Python AI agent project that I would like you to help me deploy to Render (a cloud hosting service). Below is an overview of the project structure and what it does, followed by the deployment steps I need you to carry out.
+
+---
+
+## Project Overview
+
+This is a command-line AI coding agent built with Python (managed via `uv`). It uses the Google Gemini API and has the following key files:
+
+- `main.py` — entry point; accepts a user prompt as a CLI argument
+- `prompts.py` — contains the system prompt for the agent
+- `call_function.py` — dispatches tool/function calls
+- `config.py` — configuration constants (e.g. MAX_ITERS)
+- `functions/` — individual tool implementations (file reading, writing, running Python, listing files)
+- `calculator/` — a sample Python app the agent can interact with
+- `pyproject.toml` — project dependencies managed by `uv`
+- `.python-version` — specifies the Python version
+
+The agent requires a `GEMINI_API_KEY` environment variable to function.
+
+---
+
+## What I Need You To Do
+
+1. **Wrap the CLI agent as a web service** so it can be deployed on Render as a web server. The simplest approach is to create a lightweight HTTP API using FastAPI (or Flask if FastAPI is unavailable) with a single POST endpoint `/run` that:
+   - Accepts a JSON body: `{ "prompt": "your user prompt here" }`
+   - Runs the agent logic from `main.py` (reuse the existing `generate_content` loop)
+   - Returns a JSON response: `{ "response": "agent final response here" }`
+
+2. **Create a `requirements.txt`** (or update `pyproject.toml`) so Render can install dependencies without `uv`. Include at minimum:
+   - `google-genai`
+   - `python-dotenv`
+   - `fastapi`
+   - `uvicorn`
+
+3. **Create a `render.yaml`** file at the project root to configure the Render deployment:
+   ```yaml
+   services:
+     - type: web
+       name: ai-agent
+       env: python
+       buildCommand: pip install -r requirements.txt
+       startCommand: uvicorn server:app --host 0.0.0.0 --port 10000
+       envVars:
+         - key: GEMINI_API_KEY
+           sync: false
+
+4. Create the web server file (name it server.py) at the project root that imports and reuses the agent logic.
+
+5. Verify that the project root contains: server.py, render.yaml, requirements.txt, and all existing source files untouched.
+
+6. Do not modify main.py, prompts.py, call_function.py, config.py, or anything inside functions/ or calculator/ — only add new files.
+
+---
+
+## Deployment Steps (after you create the files)
+Once the files are ready, I will:
+
+Push the updated repo to GitHub.
+Go to render.com, create a new Web Service, connect my GitHub repo, and set the GEMINI_API_KEY environment variable in the Render dashboard.
+Deploy.
+Please start by creating server.py, then requirements.txt, then render.yaml. Show me each file before writing it so I can confirm.
+
+
+---
+
+A few notes on why this approach:
+
+- **Render** is the fastest and most reliable free-tier option for Python web services, and it integrates cleanly with GitHub.
+- Wrapping the agent in **FastAPI + uvicorn** is the minimal, production-appropriate way to expose a CLI tool as a cloud service.
+- Keeping all existing files untouched ensures the Boot.dev CLI tests still pass locally.
