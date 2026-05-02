@@ -57,6 +57,11 @@ def generate_content(client, messages):
     return None
 
 
+@app.get("/")
+def health_check():
+    return {"status": "ok", "message": "AI Agent API is running. Use POST /run to interact with the agent."}
+
+
 @app.post("/run", response_model=PromptResponse)
 def run_agent(body: PromptRequest):
     api_key = os.environ.get("GEMINI_API_KEY")
