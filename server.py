@@ -2,6 +2,8 @@ import os
 
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from google import genai
 from google.genai import types
 from pydantic import BaseModel
@@ -13,6 +15,7 @@ from prompts import system_prompt
 load_dotenv()
 
 app = FastAPI(title="AI Agent API")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 class PromptRequest(BaseModel):
@@ -58,8 +61,8 @@ def generate_content(client, messages):
 
 
 @app.get("/")
-def health_check():
-    return {"status": "ok", "message": "AI Agent API is running. Use POST /run to interact with the agent."}
+def root():
+    return FileResponse("static/index.html")
 
 
 @app.post("/run", response_model=PromptResponse)

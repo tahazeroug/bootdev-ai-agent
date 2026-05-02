@@ -1,0 +1,388 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>AI Code Agent</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: #0f0f13;
+      color: #fff;
+      height: 100dvh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 14px 24px;
+      border-bottom: 1px solid rgba(255,255,255,0.08);
+      background: rgba(15,15,19,0.85);
+      backdrop-filter: blur(8px);
+    }
+
+    .logo {
+      width: 36px; height: 36px;
+      border-radius: 10px;
+      background: rgba(139,92,246,0.15);
+      border: 1px solid rgba(139,92,246,0.3);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 18px;
+    }
+
+    .header-title { font-size: 14px; font-weight: 600; line-height: 1; }
+    .header-sub { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 3px; }
+
+    .status {
+      margin-left: auto;
+      display: flex; align-items: center; gap: 6px;
+      font-size: 11px; color: rgba(255,255,255,0.35);
+    }
+
+    .dot {
+      width: 7px; height: 7px; border-radius: 50%;
+      background: #34d399;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.4; }
+    }
+
+    #messages {
+      flex: 1;
+      overflow-y: auto;
+      padding: 24px 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      scroll-behavior: smooth;
+    }
+
+    .empty-state {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      text-align: center;
+      color: rgba(255,255,255,0.4);
+    }
+
+    .empty-icon {
+      width: 60px; height: 60px; border-radius: 16px;
+      background: rgba(139,92,246,0.1);
+      border: 1px solid rgba(139,92,246,0.2);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 28px;
+    }
+
+    .empty-state h2 { font-size: 15px; color: #fff; }
+    .empty-state p { font-size: 13px; }
+
+    .msg { display: flex; align-items: flex-start; gap: 10px; }
+    .msg.user { flex-direction: row-reverse; }
+
+    .avatar {
+      width: 30px; height: 30px; border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; flex-shrink: 0; margin-top: 2px;
+    }
+
+    .msg.user .avatar {
+      background: rgba(255,255,255,0.08);
+      border: 1px solid rgba(255,255,255,0.1);
+    }
+
+    .msg.assistant .avatar {
+      background: rgba(139,92,246,0.15);
+      border: 1px solid rgba(139,92,246,0.3);
+    }
+
+    .bubble {
+      max-width: 78%;
+      padding: 10px 14px;
+      border-radius: 16px;
+      font-size: 13px;
+      line-height: 1.6;
+      white-space: pre-wrap;
+      word-break: break-word;
+    }
+
+    .msg.user .bubble {
+      background: #7c3aed;
+      border-radius: 16px 4px 16px 16px;
+    }
+
+    .msg.assistant .bubble {
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 4px 16px 16px 16px;
+      color: rgba(255,255,255,0.85);
+    }
+
+    .bubble code {
+      background: rgba(255,255,255,0.1);
+      color: #a78bfa;
+      padding: 1px 5px;
+      border-radius: 4px;
+      font-family: 'Fira Code', monospace;
+      font-size: 12px;
+    }
+
+    .thinking {
+      display: flex; align-items: center; gap: 8px;
+      color: rgba(255,255,255,0.35);
+      font-size: 12px;
+    }
+
+    .dots span {
+      display: inline-block;
+      width: 5px; height: 5px; border-radius: 50%;
+      background: #7c3aed;
+      margin: 0 1px;
+      animation: bounce 1.2s infinite;
+    }
+    .dots span:nth-child(2) { animation-delay: 0.2s; }
+    .dots span:nth-child(3) { animation-delay: 0.4s; }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.4; }
+      40% { transform: translateY(-5px); opacity: 1; }
+    }
+
+    .input-area { padding: 12px 16px 20px; }
+
+    .input-box {
+      display: flex;
+      align-items: flex-end;
+      gap: 10px;
+      background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      padding: 10px 12px;
+      transition: border-color 0.2s;
+    }
+
+    .input-box:focus-within { border-color: rgba(139,92,246,0.5); }
+
+    .input-icon { color: rgba(255,255,255,0.25); font-size: 14px; margin-bottom: 2px; }
+
+    textarea {
+      flex: 1;
+      background: transparent;
+      border: none;
+      outline: none;
+      color: #fff;
+      font-size: 13px;
+      font-family: inherit;
+      resize: none;
+      line-height: 1.5;
+      min-height: 22px;
+      max-height: 140px;
+    }
+
+    textarea::placeholder { color: rgba(255,255,255,0.2); }
+
+    button#send {
+      width: 32px; height: 32px; border-radius: 10px;
+      background: #7c3aed;
+      border: none; cursor: pointer;
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 14px;
+      transition: background 0.15s, opacity 0.15s;
+      flex-shrink: 0;
+    }
+
+    button#send:hover { background: #6d28d9; }
+    button#send:disabled { opacity: 0.3; cursor: not-allowed; }
+
+    .hint {
+      text-align: center;
+      font-size: 11px;
+      color: rgba(255,255,255,0.18);
+      margin-top: 8px;
+    }
+
+    .error-msg {
+      background: rgba(239,68,68,0.1);
+      border: 1px solid rgba(239,68,68,0.25);
+      border-radius: 10px;
+      padding: 10px 14px;
+      font-size: 12px;
+      color: #fca5a5;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <div class="logo">⚡</div>
+  <div>
+    <div class="header-title">AI Code Agent</div>
+    <div class="header-sub">Powered by Gemini 2.5 Flash</div>
+  </div>
+  <div class="status">
+    <div class="dot"></div>
+    Online
+  </div>
+</header>
+
+<div id="messages">
+  <div class="empty-state" id="empty">
+    <div class="empty-icon">🤖</div>
+    <h2>Ask the agent anything</h2>
+    <p>It can read, write, and run code in your project</p>
+  </div>
+</div>
+
+<div class="input-area">
+  <div class="input-box">
+    <span class="input-icon">⌨️</span>
+    <textarea id="prompt" rows="1" placeholder="Ask the agent to read files, write code, run tests…"></textarea>
+    <button id="send">➤</button>
+  </div>
+  <p class="hint">Enter to send · Shift+Enter for new line</p>
+</div>
+
+<script>
+  const messagesEl = document.getElementById('messages');
+  const promptEl = document.getElementById('prompt');
+  const sendBtn = document.getElementById('send');
+  const emptyEl = document.getElementById('empty');
+  let loading = false;
+
+  promptEl.addEventListener('input', () => {
+    promptEl.style.height = 'auto';
+    promptEl.style.height = Math.min(promptEl.scrollHeight, 140) + 'px';
+  });
+
+  promptEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+
+  sendBtn.addEventListener('click', send);
+
+  function scrollBottom() {
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+  }
+
+  function addMsg(role, content) {
+    if (emptyEl) emptyEl.remove();
+
+    const wrap = document.createElement('div');
+    wrap.className = `msg ${role}`;
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = role === 'user' ? '👤' : '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = formatContent(content);
+
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    messagesEl.appendChild(wrap);
+    scrollBottom();
+    return bubble;
+  }
+
+  function addThinking() {
+    if (emptyEl) emptyEl.remove();
+
+    const wrap = document.createElement('div');
+    wrap.className = 'msg assistant';
+    wrap.id = 'thinking-row';
+
+    const avatar = document.createElement('div');
+    avatar.className = 'avatar';
+    avatar.textContent = '🤖';
+
+    const bubble = document.createElement('div');
+    bubble.className = 'bubble';
+    bubble.innerHTML = `<div class="thinking"><div class="dots"><span></span><span></span><span></span></div> Agent is thinking…</div>`;
+
+    wrap.appendChild(avatar);
+    wrap.appendChild(bubble);
+    messagesEl.appendChild(wrap);
+    scrollBottom();
+  }
+
+  function removeThinking() {
+    const el = document.getElementById('thinking-row');
+    if (el) el.remove();
+  }
+
+  function formatContent(text) {
+    return text
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\n/g, '<br>');
+  }
+
+  async function send() {
+    const text = promptEl.value.trim();
+    if (!text || loading) return;
+
+    loading = true;
+    sendBtn.disabled = true;
+    promptEl.value = '';
+    promptEl.style.height = 'auto';
+
+    addMsg('user', text);
+    addThinking();
+
+    try {
+      const res = await fetch('/run', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt: text })
+      });
+
+      removeThinking();
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ detail: 'Unknown error' }));
+        const wrap = document.createElement('div');
+        wrap.className = 'msg assistant';
+        const avatar = document.createElement('div');
+        avatar.className = 'avatar'; avatar.textContent = '🤖';
+        const errEl = document.createElement('div');
+        errEl.className = 'error-msg';
+        errEl.textContent = '⚠️ ' + (err.detail || `Error ${res.status}`);
+        wrap.appendChild(avatar); wrap.appendChild(errEl);
+        messagesEl.appendChild(wrap);
+      } else {
+        const data = await res.json();
+        addMsg('assistant', data.response);
+      }
+    } catch (e) {
+      removeThinking();
+      const wrap = document.createElement('div');
+      wrap.className = 'msg assistant';
+      const avatar = document.createElement('div');
+      avatar.className = 'avatar'; avatar.textContent = '🤖';
+      const errEl = document.createElement('div');
+      errEl.className = 'error-msg';
+      errEl.textContent = '⚠️ Network error — is the server running?';
+      wrap.appendChild(avatar); wrap.appendChild(errEl);
+      messagesEl.appendChild(wrap);
+    }
+
+    loading = false;
+    sendBtn.disabled = false;
+    promptEl.focus();
+    scrollBottom();
+  }
+</script>
+</body>
+</html>
