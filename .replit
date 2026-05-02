@@ -1,4 +1,4 @@
-modules = ["python-3.12"]
+modules = ["python-3.12", "nodejs-20"]
 [agent]
 expertMode = true
 stack = "BEST_EFFORT_FALLBACK"
@@ -28,3 +28,7 @@ args = "python3 main.py \"Hello, what can you do?\""
 
 [workflows.workflow.metadata]
 outputType = "console"
+
+[[ports]]
+localPort = 23636
+externalPort = 80
